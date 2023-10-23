@@ -12,3 +12,17 @@ type ApiError struct {
 	ApiStatus ApiStatus
 	Err       error
 }
+
+func WhenServiceError(err error) *ApiError {
+	return &ApiError{
+		ApiStatus: Fail,
+		Err:       err,
+	}
+}
+
+func WhenParamError(err error) *ApiError {
+	return &ApiError{
+		ApiStatus: RequestParamError,
+		Err:       err,
+	}
+}
