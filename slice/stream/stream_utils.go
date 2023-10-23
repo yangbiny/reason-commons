@@ -2,7 +2,7 @@ package stream
 
 import "github.com/yangbiny/reason-commons/common"
 
-func Just[REQ []*interface{}](slice REQ) (Stream, error) {
+func FromSlice[REQ []*interface{}](slice REQ) (Stream, error) {
 	return DefaultStream[REQ]{
 		slice: slice,
 	}, nil
@@ -13,20 +13,12 @@ type Stream interface {
 	Distinct(keyFunc common.Function) Stream
 	// Filter 按条件过滤item
 	Filter(filterFunc common.Predicate) Stream
-	// Group 分组
-	Group(fn common.Function) Stream
-	// Head 返回前n个元素
-	Head(n int64) Stream
-	// Tail 返回后n个元素
-	Tail(n int64) Stream
 	// First 获取第一个元素
 	First() interface{}
 	// Last 获取最后一个元素
 	Last() interface{}
 	// Map 转换对象
 	Map(fn common.Function) Stream
-	// Merge 合并item到slice生成新的stream
-	Merge() Stream
 	// Reverse 反转
 	Reverse() Stream
 	// Sort 排序
@@ -49,57 +41,78 @@ type Stream interface {
 
 type DefaultStream[REQ []*interface{}] struct {
 	slice  REQ
-	result []interface{}
+	result []*interface{}
+}
+
+func (stream DefaultStream[REQ]) value() []*interface{} {
+	if len(stream.result) == 0 {
+		return stream.slice
+	}
+	return stream.result
 }
 
 func (stream DefaultStream[REQ]) Distinct(keyFunc common.Function) Stream {
-	//TODO implement me
-	panic("implement me")
+	result := make(REQ, 0)
+	occur := map[string]bool{}
+	for _, item := range stream.value() {
+		tmp := keyFunc(item)
+		s := tmp.(string)
+		if occur[s] {
+			continue
+		}
+		occur[s] = true
+		result = append(result, item)
+	}
+	stream.result = result
+	return stream
 }
 
 func (stream DefaultStream[REQ]) Filter(filterFunc common.Predicate) Stream {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (stream DefaultStream[REQ]) Group(fn common.Function) Stream {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (stream DefaultStream[REQ]) Head(n int64) Stream {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (stream DefaultStream[REQ]) Tail(n int64) Stream {
-	//TODO implement me
-	panic("implement me")
+	var result = make(REQ, 0)
+	for _, item := range stream.value() {
+		if filterFunc(item) {
+			result = append(result, item)
+		}
+	}
+	stream.result = result
+	return stream
 }
 
 func (stream DefaultStream[REQ]) First() interface{} {
-	//TODO implement me
-	panic("implement me")
+	value := stream.value()
+	if len(value) == 0 {
+		return nil
+	}
+	return value[0]
 }
 
 func (stream DefaultStream[REQ]) Last() interface{} {
-	//TODO implement me
-	panic("implement me")
+	value := stream.value()
+	if len(value) == 0 {
+		return nil
+	}
+	return value[len(value)-1]
 }
 
 func (stream DefaultStream[REQ]) Map(fn common.Function) Stream {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (stream DefaultStream[REQ]) Merge() Stream {
-	//TODO implement me
-	panic("implement me")
+	result := make([]*interface{}, 0)
+	for _, item := range stream.value() {
+		tmp := fn(item)
+		result = append(result, &tmp)
+	}
+	stream.result = result
+	return stream
 }
 
 func (stream DefaultStream[REQ]) Reverse() Stream {
-	//TODO implement me
-	panic("implement me")
+	value := stream.value()
+	result := make([]*interface{}, 0)
+	copy(result, value)
+	for i, j := 0, len(result)-1; i < j; i, j = i+1, j-1 {
+		result[i], result[j] = result[j], result[i]
+	}
+	stream.result = result
+	return stream
 }
 
 func (stream DefaultStream[REQ]) Sort(fn common.FilterFunc) Stream {
